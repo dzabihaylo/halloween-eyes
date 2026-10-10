@@ -6,8 +6,9 @@
 #
 # Differences from docs/PLAN.md Task 12, all from docs/SPIKE-NOTES.md:
 # - The session is labwc (Wayland). Chromium runs under XWayland, which honors
-#   --window-position, so there is no xrandr step. xset does not apply either;
-#   blanking is already off (no swayidle running).
+#   --window-position, so there is no xrandr step. xset does not apply either.
+#   Blanking is handled by eyes-idle.service, which never sleeps the monitors
+#   while this service is active.
 # - Each window gets an explicit ?viewport= so placement never depends on
 #   launch order.
 # - --password-store=basic stops a keyring dialog from covering the show.

@@ -17,6 +17,14 @@ StartLimitIntervalSec=0
 [Service]
 Type=simple
 Environment=APP_DIR=%h/halloween-eyes
+# Wake the monitors if eyes-idle.service put them to sleep. The leading "-"
+# means a failure here never stops the show from starting.
+ExecStartPre=-%h/halloween-eyes/deploy/screens.sh on
 ExecStart=%h/halloween-eyes/deploy/launch-windows.sh
+# Sleep the monitors after a deliberate stop (cron at 23:30, or by hand), but
+# not between crash restarts: systemd sets SERVICE_RESULT=success only for a
+# clean stop. Needed because swayidle's timeout already fired during the show
+# and will not fire again until someone touches the keyboard or mouse.
+ExecStopPost=-/bin/sh -c '[ "$$SERVICE_RESULT" = success ] && %h/halloween-eyes/deploy/screens.sh off --force'
 Restart=always
 RestartSec=5

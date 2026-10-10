@@ -1,0 +1,25 @@
+# eyes-idle.service — systemd USER unit: sleep the monitors when nobody is using them.
+#
+# Installed and enabled by deploy/install-autostart.sh.
+# After 10 minutes with no keyboard/mouse input, the monitors sleep — unless the
+# show is running (deploy/screens.sh refuses to blank it). Any keyboard or mouse
+# input wakes them.
+#   Logs:  journalctl --user -u eyes-idle -f
+# Needs: sudo apt install swayidle wlopm
+[Unit]
+Description=Sleep the monitors when idle outside show hours
+# Like halloween-eyes.service: keep retrying while the desktop is (re)starting.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Environment=WAYLAND_DISPLAY=wayland-0
+# swayidle exits when labwc goes away (relogin), so systemd brings it back.
+ExecStart=/usr/bin/swayidle -w \
+  timeout 600 '%h/halloween-eyes/deploy/screens.sh off' \
+  resume      '%h/halloween-eyes/deploy/screens.sh on'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
