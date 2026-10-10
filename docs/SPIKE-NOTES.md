@@ -108,6 +108,9 @@ case for the native renderer (spec approach 3).
   labwc exited and the Pi sat at the login screen (fixed by `deploy/lightdm/`), and
   both outputs stayed disabled — "HDMI no signal" — because kanshi's config was empty
   (fixed by `deploy/kanshi/config`). Verified: monitors off and on, eyes return.
+- **DPMS sleep is safe where power cycling was not** (2026-10-10). `wlopm --off '*'` /
+  `--on '*'` sleeps and wakes both monitors with labwc and the layout untouched, and show
+  start/stop wakes/sleeps them correctly. Used by `deploy/screens.sh`.
 - Chromium picks native Wayland by itself when `WAYLAND_DISPLAY` is set, and native
   Wayland ignores `--window-position`. `launch-windows.sh` forces `--ozone-platform=x11`.
 - `grim -o HDMI-A-1 file.png` screenshots one monitor over SSH — a remote way to check

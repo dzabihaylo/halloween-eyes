@@ -615,9 +615,17 @@ squinting at brow angles from the pavement.
 **This must be verified across reboots, not once** — see §9. It is exactly the class of thing
 that works when you set it up and bites months later.
 
-Also required: screen blanking and DPMS disabled, cursor hidden, Chromium's crash-restore
-bubble suppressed. Screen blanking is the classic failure — it will blank at the worst
-possible moment if not explicitly disabled.
+Also required: screen blanking and DPMS disabled **during the show**, cursor hidden, Chromium's
+crash-restore bubble suppressed. Screen blanking is the classic failure — it will blank at the
+worst possible moment if not explicitly disabled.
+
+Outside show hours the monitors sleep instead of showing the desktop all day (added
+2026-10-10). `deploy/eyes-idle.service` runs swayidle: after 10 idle minutes it calls
+`deploy/screens.sh off`, which refuses while the show service is active, and any keyboard or
+mouse input wakes them. The show service wakes the monitors before starting and sleeps them
+after a clean stop; SSH login wakes them and logout sleeps them again. Sleep uses DPMS
+(`wlopm`), which keeps the outputs enabled at their kanshi positions — never
+`wlr-randr --off`, which disables them and reproduces the "HDMI no signal" bug.
 
 ### 7.2 Autostart and supervision
 
@@ -643,7 +651,8 @@ is nothing to be done about it — being *on* matters more than looking good at 
 
 Implemented as cron or a systemd timer starting and stopping the service. A smart plug on the
 monitors is a reasonable low-tech alternative and has the advantage of cutting the panels'
-backlight rather than merely displaying black.
+backlight rather than merely displaying black. (Superseded: DPMS sleep outside show hours
+now cuts the backlight too — see §7.1.)
 
 Neighbor constraint checked: no windows directly opposite, so the 23:30 shutdown is a
 courtesy rather than a requirement.
