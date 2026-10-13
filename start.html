@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Summon the Eyes</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #050409; color: #f2c66d;
+    font: 18px/1.5 system-ui, sans-serif; }
+  main { max-width: 32rem; margin: 0 auto; padding: 12vh 16px; text-align: center; }
+  button { font: inherit; font-size: 1.4rem; padding: .7em 1.6em; border: 0;
+    border-radius: 999px; background: #f2a33a; color: #050409; cursor: pointer; }
+  p { color: #c9b89a; }
+  #status { min-height: 3em; }
+  a { color: #f2c66d; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Halloween Eyes</h1>
+  <p>Opens one eye on each of your two monitors. Close the windows to stop.</p>
+  <button id="go">Summon the eyes</button>
+  <p id="status"></p>
+  <p>No luck? Open these yourself, one per monitor, and go full screen:<br>
+    <a href="index.html?viewport=left" target="_blank">left eye</a> ·
+    <a href="index.html?viewport=right" target="_blank">right eye</a></p>
+</main>
+<script>
+// Uses Chrome/Edge's Window Management API to put each eye on its own monitor.
+// With one screen (or no permission) both eyes open side by side on this one.
+const status = document.getElementById('status');
+
+async function screens() {
+  if (!('getScreenDetails' in window)) return null;
+  try {
+    const details = await window.getScreenDetails();
+    return [...details.screens].sort((a, b) => a.availLeft - b.availLeft);
+  } catch { return null; }   // permission denied
+}
+
+function openEye(viewport, s) {
+  const features = `popup,left=${s.left},top=${s.top},width=${s.width},height=${s.height}`;
+  return window.open(`index.html?viewport=${viewport}`, `eyes-${viewport}`, features);
+}
+
+document.getElementById('go').addEventListener('click', async () => {
+  const list = await screens();
+  let left, right;
+  if (list && list.length >= 2) {
+    const box = (s) => ({ left: s.availLeft, top: s.availTop, width: s.availWidth, height: s.availHeight });
+    [left, right] = [box(list[0]), box(list[1])];
+  } else {
+    // One screen: split it in half so the pair can still be seen working.
+    const w = Math.floor(screen.availWidth / 2), h = screen.availHeight;
+    left = { left: 0, top: 0, width: w, height: h };
+    right = { left: w, top: 0, width: w, height: h };
+  }
+  const a = openEye('left', left);
+  const b = openEye('right', right);
+  if (!a || !b) {
+    status.textContent = 'Your browser blocked a window. Allow pop-ups for this page and click again.';
+  } else if (list && list.length >= 2) {
+    status.textContent = 'Boo! For true full screen, click each eye window and press F11 (Ctrl+Cmd+F on Mac).';
+  } else {
+    status.textContent = 'Only one screen found (or Chrome/Edge permission was declined), so both eyes are sharing this one.';
+  }
+});
+</script>
+</body>
+</html>
