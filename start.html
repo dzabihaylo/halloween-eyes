@@ -43,27 +43,48 @@ function openEye(viewport, s) {
   return window.open(`index.html?viewport=${viewport}`, `eyes-${viewport}`, features);
 }
 
-document.getElementById('go').addEventListener('click', async () => {
+// Chrome allows only one pop-up per click, so the second eye is usually
+// blocked. When that happens the button turns into "Summon the right eye"
+// and the next click opens it. Pages that already allow pop-ups get both
+// eyes from the first click.
+const go = document.getElementById('go');
+let pending = null;   // { boxes, multi } while the right eye still needs a click
+
+async function placements() {
   const list = await screens();
-  let left, right;
   if (list && list.length >= 2) {
     const box = (s) => ({ left: s.availLeft, top: s.availTop, width: s.availWidth, height: s.availHeight });
-    [left, right] = [box(list[0]), box(list[1])];
-  } else {
-    // One screen: split it in half so the pair can still be seen working.
-    const w = Math.floor(screen.availWidth / 2), h = screen.availHeight;
-    left = { left: 0, top: 0, width: w, height: h };
-    right = { left: w, top: 0, width: w, height: h };
+    return { boxes: [box(list[0]), box(list[1])], multi: true };
   }
-  const a = openEye('left', left);
-  const b = openEye('right', right);
-  if (!a || !b) {
-    status.textContent = 'Your browser blocked a window. Allow pop-ups for this page and click again.';
-  } else if (list && list.length >= 2) {
-    status.textContent = 'Boo! For true full screen, click each eye window and press F11 (Ctrl+Cmd+F on Mac).';
-  } else {
-    status.textContent = 'Only one screen found (or Chrome/Edge permission was declined), so both eyes are sharing this one.';
+  // One screen: split it in half so the pair can still be seen working.
+  const w = Math.floor(screen.availWidth / 2), h = screen.availHeight;
+  return { boxes: [{ left: 0, top: 0, width: w, height: h },
+                   { left: w, top: 0, width: w, height: h }], multi: false };
+}
+
+function done(multi) {
+  pending = null;
+  go.textContent = 'Summon the eyes';
+  status.textContent = multi
+    ? 'Boo! For true full screen, click each eye window and press F11 (Ctrl+Cmd+F on Mac).'
+    : 'Only one screen found (or Chrome/Edge permission was declined), so both eyes are sharing this one.';
+}
+
+go.addEventListener('click', async () => {
+  if (pending) {   // second click: open the eye Chrome blocked last time
+    if (openEye('right', pending.boxes[1])) done(pending.multi);
+    else status.textContent = 'Still blocked. Allow pop-ups for this page, then click again.';
+    return;
   }
+  const plan = await placements();
+  if (!openEye('left', plan.boxes[0])) {
+    status.textContent = 'Your browser blocked the window. Allow pop-ups for this page and click again.';
+    return;
+  }
+  if (openEye('right', plan.boxes[1])) { done(plan.multi); return; }
+  pending = plan;
+  go.textContent = 'Summon the right eye';
+  status.textContent = 'Left eye is up. Click once more for the right eye.';
 });
 </script>
 </body>
