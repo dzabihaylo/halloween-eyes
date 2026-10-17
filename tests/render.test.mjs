@@ -105,3 +105,14 @@ test('a closed lid covers the full eye height', () => {
   updateEye(svg._refs, { gaze: 0, lid: 0, brow: 1, pupil: 1, pupilShape: 'round' });
   assert.equal(Number(svg._refs.lidTop.getAttribute('height')), 0, 'lid 0 is fully open');
 });
+
+test('aniridia: no iris, iris-width pupil that never dilates or constricts', () => {
+  const { svg, geom } = build('aniridia');
+  assert.equal(geom.hasIris, false);
+  assert.ok(Math.abs(geom.pupil.round - eyeGeometry('amber', 'L').irisR) < 1e-9,
+    'the pupil spans the missing iris');
+  for (const pupil of [0.62, 1, 1.2]) {   // mockSurprise, rest, lockOn
+    updateEye(svg._refs, { gaze: 0, lid: 0, brow: 1, pupil, pupilShape: 'round' });
+    assert.equal(Number(svg._refs.pupilRound.getAttribute('r')), Number(geom.pupil.round.toFixed(2)));
+  }
+});

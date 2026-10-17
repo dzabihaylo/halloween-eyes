@@ -39,7 +39,8 @@ const urlGag = new URLSearchParams(location.search).get('gag');
 function buildEyes() {
   stageEl.replaceChildren();
   const palette = PALETTES[state.palette];
-  const pupilShape = palette.pupilOverride ?? SHAPES[state.shape].pupil;
+  const shape = SHAPES[state.shape];
+  const pupilShape = shape.pupilFixed ? shape.pupil : palette.pupilOverride ?? shape.pupil;
 
   eyes = ['L', 'R'].map((side) => {
     const geom = eyeGeometry(state.shape, side);
