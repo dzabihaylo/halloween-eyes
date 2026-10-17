@@ -28,13 +28,13 @@ logger = logging.getLogger("halloween-eyes")
 #: public/js/poses.js. tests/test_serve.py fails if the two lists drift apart.
 PERFORMANCE_NAMES = (
     "crossEyed", "wallEyed", "wanderingEye", "bothOneWindow",
-    "lockOn", "suspicious", "mockSurprise",
+    "lockOn", "suspicious", "mockSurprise", "slowSquint",
 )
 
 #: Allowed values. Anything else is rejected rather than coerced.
 VALID = {
-    "shape": {"amber", "ember"},
-    "palette": {"amber", "green"},
+    "shape": {"amber", "ember", "aniridia"},
+    "palette": {"amber", "green", "violet", "ghost", "slime"},
     "energyDrift": {True, False},
     "crowdStyle": {"shrink", "squash"},
     # A test gag loops one performance for two minutes (docs/specs/2026-10-05-test-gags-design.md).

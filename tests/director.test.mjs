@@ -236,10 +236,10 @@ import { PERFORMANCE_NAMES, profileDuration } from '../public/js/poses.js';
 
 // --- Test gags: one chosen performance on a loop, for testing. ---
 
-test('there are seven performances to test', () => {
+test('there are eight performances to test', () => {
   assert.deepEqual(PERFORMANCE_NAMES, [
     'crossEyed', 'wallEyed', 'wanderingEye', 'bothOneWindow',
-    'lockOn', 'suspicious', 'mockSurprise'
+    'lockOn', 'suspicious', 'mockSurprise', 'slowSquint'
   ]);
 });
 
