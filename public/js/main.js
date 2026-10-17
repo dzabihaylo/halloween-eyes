@@ -28,13 +28,21 @@ const state = {
   energyDrift: true,
   crowdStyle: 'shrink',
   testGag: 'off',   // from the control page; see testGagFrom()
-  testGagAt: 0
+  testGagAt: 0,
+  scene: 'auto'     // see scenes/calendar.js
 };
 
-let viewport, stage, eyes, stageEl;
+let viewport, stage, eyes, stageEl, sceneCanvas, sceneCtx;
+let scenes = null;      // the scene layer, once loaded; null means eyes only
+let showing = 'eyes';
 
 // ?gag=<name> loops one performance at a desk (docs/specs/2026-10-05-test-gags-design.md).
 const urlGag = new URLSearchParams(location.search).get('gag');
+// ?scene=<name> forces a scene at a desk (docs/specs/2026-10-16-seasonal-scenes-design.md).
+const urlScene = new URLSearchParams(location.search).get('scene');
+// ?at=2026-12-08T19:00 runs the clock from that local time, to preview a date at a desk.
+const urlAt = Date.parse(new URLSearchParams(location.search).get('at'));
+const clockOffset = Number.isFinite(urlAt) ? urlAt - Date.now() : 0;
 
 function buildEyes() {
   stageEl.replaceChildren();
@@ -58,10 +66,49 @@ function layout() {
   const eyeW = vw * (BASE.rx * 2 / BASE.W);
   stage = makeStage({ viewportW: vw, eyeW, gapEyeWidths: DEFAULT_GAP_EYE_WIDTHS });
   for (const e of eyes) e.holder.style.width = `${vw}px`;
+  const dpr = window.devicePixelRatio || 1;
+  sceneCanvas.width = Math.round(vw * dpr);
+  sceneCanvas.height = Math.round(window.innerHeight * dpr);
+}
+
+function show(which) {
+  if (which === showing) return;
+  showing = which;
+  stageEl.hidden = which !== 'eyes';
+  sceneCanvas.hidden = which === 'eyes';
+}
+
+/** Draw a scene's slice of the stage. Returns false if it could not, so the eyes take over. */
+function drawScene(name, tMs) {
+  const dpr = window.devicePixelRatio || 1;
+  const x0 = stage.viewports[viewport].x0;
+  try {
+    // Scenes draw in stage coordinates; shift so this window's slice lands on screen.
+    sceneCtx.setTransform(dpr, 0, 0, dpr, -x0 * dpr, 0);
+    scenes.drawScene(name, sceneCtx, tMs, {
+      x0, vw: stage.viewportW, H: window.innerHeight, totalW: stage.totalW,
+      left: stage.viewports.left, right: stage.viewports.right
+    });
+    return true;
+  } catch (err) {
+    // A broken scene must not leave a dark window. Back to the eyes for this session.
+    console.warn(`Scene ${name} failed; showing the eyes instead.`, err);
+    scenes = null;
+    return false;
+  }
 }
 
 function frame() {
-  const s = showState(Date.now(), {
+  const now = Date.now() + clockOffset;
+  const name = scenes ? scenes.sceneAt(now, urlScene ?? state.scene) : 'eyes';
+  if (name !== 'eyes' && drawScene(name, now)) {
+    show('scene');
+    requestAnimationFrame(frame);
+    return;
+  }
+  show('eyes');
+
+  const s = showState(now, {
     ...DEFAULT_SHOW_CONFIG,
     energyDrift: state.energyDrift,
     testGag: testGagFrom({ urlGag, testGag: state.testGag, testGagAt: state.testGagAt })
@@ -122,14 +169,26 @@ async function startConfigChannel(onConfig) {
   }
 }
 
+/** Load the scene layer the same guarded way: if it fails, the page shows the eyes all season. */
+async function loadScenes() {
+  try {
+    scenes = await import('./scenes/index.js');
+  } catch (err) {
+    console.warn('Scene layer unavailable; showing the eyes.', err);
+  }
+}
+
 function boot() {
   stageEl = document.getElementById('stage');
+  sceneCanvas = document.getElementById('scene');
+  sceneCtx = sceneCanvas.getContext('2d');
   viewport = detectViewport();
   buildEyes();
   layout();
   window.addEventListener('resize', layout);
   if (new URLSearchParams(location.search).has('setup')) showSetupOverlay();
   startConfigChannel(applyConfig);
+  loadScenes();
   requestAnimationFrame(frame);
 }
 

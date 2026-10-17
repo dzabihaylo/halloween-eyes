@@ -170,3 +170,16 @@ test('a new test gag start time counts as a change', async () => {
   assert.equal(applied.length, before + 1, 'the same gag posted again did not re-trigger');
   assert.equal(applied.at(-1).testGagAt, 1_010_000);
 });
+
+test('a scene choice from the phone passes through; an unknown one is dropped', async () => {
+  const applied = [];
+  served = { ...BASE_CONFIG, scene: 'leaves' };
+  client = startConfigClient((next) => applied.push(next));
+  await flush();
+  await advance(0);
+  assert.equal(applied.at(-1).scene, 'leaves');
+
+  served = { ...BASE_CONFIG, scene: 'fireworks' };
+  await advance(2000);
+  assert.equal(applied.length, 1, 'an unknown scene is not applied');
+});

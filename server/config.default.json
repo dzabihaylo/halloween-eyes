@@ -3,5 +3,6 @@
   "palette": "amber",
   "energyDrift": true,
   "crowdStyle": "shrink",
+  "scene": "auto",
   "effectiveAt": 0
 }

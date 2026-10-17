@@ -31,6 +31,11 @@ PERFORMANCE_NAMES = (
     "lockOn", "suspicious", "mockSurprise", "slowSquint",
 )
 
+#: Which show runs: "auto" follows the calendar, anything else forces that scene.
+#: A copy of SCENE_CHOICES in public/js/scenes/calendar.js; tests/test_serve.py
+#: fails if the two lists drift apart.
+SCENE_CHOICES = ("auto", "eyes", "leaves", "menorah", "christmas", "santa")
+
 #: Allowed values. Anything else is rejected rather than coerced.
 VALID = {
     "shape": {"amber", "ember", "aniridia"},
@@ -39,6 +44,7 @@ VALID = {
     "crowdStyle": {"shrink", "squash"},
     # A test gag loops one performance for two minutes (docs/specs/2026-10-05-test-gags-design.md).
     "testGag": {"off", *PERFORMANCE_NAMES},
+    "scene": set(SCENE_CHOICES),
 }
 
 DEFAULTS = {
@@ -49,6 +55,7 @@ DEFAULTS = {
     "effectiveAt": 0,
     "testGag": "off",
     "testGagAt": 0,
+    "scene": "auto",
 }
 
 #: A change is scheduled this far ahead so both windows, polling every 2s,
