@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from server.serve import VALID, load_config, make_server
+from server.serve import SCENE_CHOICES, VALID, load_config, make_server
 
 
 @pytest.fixture()
@@ -234,3 +234,20 @@ def test_load_config_ignores_a_non_numeric_test_gag_at(tmp_path):
     config = load_config(path)
     assert config["testGag"] == "crossEyed"
     assert config["testGagAt"] == 0
+
+
+def test_scene_choices_match_the_show():
+    """The server's scene list is a copy of calendar.js. Fail if the two drift apart."""
+    source = (Path(__file__).parent.parent / "public/js/scenes/calendar.js").read_text(encoding="utf-8")
+    body = re.search(r"export const SCENE_NAMES = \[(.*?)\]", source, re.S).group(1)
+    assert list(SCENE_CHOICES) == ["auto", *re.findall(r"'([^']+)'", body)]
+
+
+def test_scene_is_auto_by_default_and_can_be_forced(running):
+    base, _ = running
+    _, body = get(f"{base}/config.json")
+    assert json.loads(body)["scene"] == "auto"
+    status, config = post(f"{base}/config", {"scene": "leaves"})
+    assert status == 200 and config["scene"] == "leaves"
+    status, _ = post(f"{base}/config", {"scene": "fireworks"})
+    assert status == 400
