@@ -49,6 +49,17 @@ if [[ "$start_month" != "$stop_month" ]]; then
   exit 1
 fi
 
+# The Pi has no clock battery, so at boot the clock resumes from the last
+# shutdown until network time arrives. On 2026-10-17 that started the show at
+# 15:29 because the clock still said 22:57. Wait up to 2 minutes for the sync;
+# with no network, carry on with the clock as it is.
+if [[ -z "${SHOW_NOW:-}" ]]; then
+  for _ in $(seq 60); do
+    [[ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null)" == yes ]] && break
+    sleep 2
+  done
+fi
+
 # "Now" as "YYYY-MM-DD HH:MM". SHOW_NOW overrides it for testing.
 now="${SHOW_NOW:-$(date '+%Y-%m-%d %H:%M')}"
 if ! [[ "$now" =~ ^[0-9]{4}-([0-9]{2})-[0-9]{2}\ ([0-9]{2}):([0-9]{2})$ ]]; then
