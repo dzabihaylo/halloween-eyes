@@ -18,6 +18,15 @@ html, body {
   height: 100%;
 }
 
+/* Every show that is not the eyes. Shown in place of #stage, never with it.
+   No display rule here, so the hidden attribute keeps working. */
+#scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 #stage .eye svg {
   display: block;
   width: 100%;
@@ -36,4 +45,10 @@ html, body {
   letter-spacing: 0.1em;
   color: #23f0a0;
   background: rgba(0, 0, 0, 0.75);
+}
+
+/* The display rule above beats the hidden attribute, which left this 75% black
+   veil over every frame of the show, setup or not. */
+#setup-overlay[hidden] {
+  display: none;
 }
