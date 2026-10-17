@@ -61,6 +61,20 @@ chromium "${CHROME_FLAGS[@]}" --user-data-dir=/tmp/eyes-left \
 chromium "${CHROME_FLAGS[@]}" --user-data-dir=/tmp/eyes-right \
   --window-position=1920,0 "${URL}?viewport=right" &
 
+# Hide the mouse pointer. The page sets cursor: none, but Chromium applies it
+# only on a pointer event, and a mouse that has sat still since boot never sends
+# one, so the arrow stays on the left screen all night. A 1px nudge, repeated
+# while the pages load, makes it apply. Needs wlrctl (sudo apt install wlrctl);
+# without it this does nothing. Disowned, so `wait -n` below never counts it.
+nudge_pointer() {
+  command -v wlrctl >/dev/null || return 0
+  for _ in 1 2 3 4 5 6; do
+    sleep 5
+    wlrctl pointer move 1 0 && wlrctl pointer move -1 0 || true
+  done
+}
+nudge_pointer & disown
+
 # Exit as soon as any one of the three dies; systemd restarts all of them.
 wait -n
 echo "a show process exited; restarting the set" >&2
