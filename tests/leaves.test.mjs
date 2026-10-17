@@ -10,8 +10,7 @@ import assert from 'node:assert/strict';
 import { makeStage } from '../public/js/stage.js';
 import { BASE } from '../public/js/geometry.js';
 import {
-  pileLeaf, ambientLeaf, gustAt, gustStrength,
-  CYCLE_MS, PILE_COUNT, AMBIENT_COUNT, GUST_EARLIEST_MS, GUST_JITTER_MS
+  pileLeaf, ambientLeaf, gustAt, gustStrength, timing, PILE_COUNT, AMBIENT_COUNT
 } from '../public/js/scenes/leaves.js';
 
 const vw = 1920, H = 1080;
@@ -19,6 +18,7 @@ const stage = makeStage({ viewportW: vw, eyeW: vw * (BASE.rx * 2 / BASE.W) });
 const geo = { vw, H, totalW: stage.totalW, left: stage.viewports.left, right: stage.viewports.right };
 
 const CYCLE = 1_000_000;   // an arbitrary cycle far from zero
+const { cycle: CYCLE_MS, gustEarliest, gustJitter } = timing();
 const start = CYCLE * CYCLE_MS;
 const gustStart = (c) => c * CYCLE_MS + gustAt(c);
 
@@ -34,7 +34,7 @@ test('the gust comes at a different moment each cycle, always late in it', () =>
   const times = [];
   for (let c = CYCLE; c < CYCLE + 20; c++) {
     const g = gustAt(c);
-    assert.ok(g >= GUST_EARLIEST_MS && g < GUST_EARLIEST_MS + GUST_JITTER_MS);
+    assert.ok(g >= gustEarliest && g < gustEarliest + gustJitter);
     times.push(g);
   }
   assert.ok(new Set(times).size > 10, 'gust timing varies between cycles');
@@ -104,4 +104,23 @@ test('ambient leaves only ever fall downward within a loop', () => {
       prev = leaf;
     }
   }
+});
+
+test('every wind setting keeps the cycle clean: pile landed before the gust, gone before the end', () => {
+  for (const gustMinutes of [1, 2, 4]) {
+    const opts = { gustMinutes };
+    const len = timing(opts).cycle;
+    for (let c = CYCLE; c < CYCLE + 10; c++) {
+      const s = c * len, g = s + gustAt(c, opts);
+      for (let i = 0; i < PILE_COUNT; i++) {
+        const a = pileLeaf(g - 1500, i, geo, opts), b = pileLeaf(g - 1, i, geo, opts);
+        assert.ok(a && b && a.y === b.y, `${gustMinutes} min, leaf ${i}: resting before the gust`);
+        assert.equal(pileLeaf(s + len - 1, i, geo, opts), null, `${gustMinutes} min, leaf ${i}: gone by cycle end`);
+      }
+    }
+  }
+});
+
+test('an unknown wind setting falls back to the default', () => {
+  assert.equal(timing({ gustMinutes: 7 }).cycle, timing().cycle);
 });

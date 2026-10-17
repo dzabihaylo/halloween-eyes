@@ -64,6 +64,19 @@ code path runs untouched.
   close. Go to sleep!". Place names stay generic ("Canada", "the next town over"):
   this repo is public.
 
+## Settings
+
+Each scene has a few settings on the phone, listed once in
+`public/js/scenes/options.js` (copied in `server/serve.py`, kept in sync by a test).
+The control page lists only the settings of the scene on screen; snow and the radar
+share one Christmas group so the page does not flip during radar checks.
+
+| Scene | Settings |
+|---|---|
+| leaves | leaf colors (autumn / gold / crimson), gust every 1 / 2 / 4 min |
+| menorah | night (auto / 1–8), candles burn down (on / off) |
+| christmas, santa | snow (light / steady / blizzard), countdown (on / off), radar check every 15 / 30 min / off |
+
 ## Schedule
 
 The crontab's month field becomes `10-12`. `start-if-show-hours.sh` accepts a
