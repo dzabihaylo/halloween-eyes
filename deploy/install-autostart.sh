@@ -20,8 +20,12 @@ for tool in swayidle wlopm wlrctl; do
 done
 
 mkdir -p ~/.config/systemd/user
-cp "$DEPLOY/halloween-eyes.service" "$DEPLOY/eyes-idle.service" ~/.config/systemd/user/
+cp "$DEPLOY/halloween-eyes.service" "$DEPLOY/eyes-idle.service" "$DEPLOY/eyes-server.service" ~/.config/systemd/user/
 systemctl --user daemon-reload
+
+# The show server runs all day, so the phone control page always answers.
+systemctl --user enable eyes-server.service
+systemctl --user restart eyes-server.service
 
 # Monitors sleep after 10 idle minutes outside show hours; keyboard/mouse wakes them.
 systemctl --user enable eyes-idle.service

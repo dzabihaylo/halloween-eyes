@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# launch-windows.sh — starts the show server and one Chromium window per monitor.
+# launch-windows.sh — starts one Chromium window per monitor.
+#
+# The pages come from the show server, which runs all day as its own service
+# (deploy/eyes-server.service) so the phone control page works outside show hours.
 #
 # Run by the halloween-eyes systemd user service (deploy/halloween-eyes.service),
 # not by hand. Install steps: deploy/install-autostart.sh.
@@ -13,9 +16,9 @@
 #   launch order.
 # - --password-store=basic stops a keyring dialog from covering the show.
 #
-# If either window or the server dies, the script exits and systemd restarts
-# the whole set. The show is a function of wall-clock time, so a restarted
-# window rejoins in phase with nothing to restore.
+# If either window dies, the script exits and systemd restarts both. The show
+# is a function of wall-clock time, so a restarted window rejoins in phase with
+# nothing to restore.
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-$HOME/halloween-eyes}"
@@ -36,13 +39,17 @@ if [ ! -S "${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}" ]; then
   exit 1
 fi
 
-python3 server/serve.py --root public --config server/config.json --port "$PORT" &
-
-# Wait for the server rather than sleeping a guessed number of seconds.
+# Wait for the server (just after boot it may still be starting) rather than
+# sleeping a guessed number of seconds. Still down: fail and let systemd retry.
+server_up=
 for _ in $(seq 1 50); do
-  if curl -fsS "${URL}config.json" >/dev/null 2>&1; then break; fi
+  if curl -fsS "${URL}config.json" >/dev/null 2>&1; then server_up=1; break; fi
   sleep 0.2
 done
+if [ -z "$server_up" ]; then
+  echo "show server not answering on ${URL}; retrying later" >&2
+  exit 1
+fi
 
 CHROME_FLAGS=(
   # Force XWayland. With WAYLAND_DISPLAY set, Chromium otherwise picks native
@@ -75,7 +82,7 @@ nudge_pointer() {
 }
 nudge_pointer & disown
 
-# Exit as soon as any one of the three dies; systemd restarts all of them.
+# Exit as soon as either window dies; systemd restarts both.
 wait -n
 echo "a show process exited; restarting the set" >&2
 exit 1
