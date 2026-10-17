@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from server.serve import SCENE_CHOICES, VALID, load_config, make_server
+from server.serve import SCENE_CHOICES, SCENE_OPTION_DEFAULTS, SCENE_OPTIONS, VALID, load_config, make_server
 
 
 @pytest.fixture()
@@ -251,3 +251,26 @@ def test_scene_is_auto_by_default_and_can_be_forced(running):
     assert status == 200 and config["scene"] == "leaves"
     status, _ = post(f"{base}/config", {"scene": "fireworks"})
     assert status == 400
+
+
+def _js_object(source: str, name: str) -> dict:
+    """Read a flat `export const NAME = { key: value, ... }` from options.js as Python."""
+    body = re.search(rf"export const {name} = \{{(.*?)\n\}};", source, re.S).group(1)
+    as_json = re.sub(r"(\w+):", r'"\1":', body.replace("'", '"'))
+    return json.loads("{" + as_json + "}")
+
+
+def test_scene_options_match_the_show():
+    """The server's per-scene settings are a copy of options.js. Fail if they drift apart."""
+    source = (Path(__file__).parent.parent / "public/js/scenes/options.js").read_text(encoding="utf-8")
+    assert _js_object(source, "SCENE_OPTIONS") == {k: list(v) for k, v in SCENE_OPTIONS.items()}
+    assert _js_object(source, "OPTION_DEFAULTS") == SCENE_OPTION_DEFAULTS
+
+
+def test_scene_settings_accept_exact_values_only(running):
+    base, _ = running
+    status, config = post(f"{base}/config", {"gustMinutes": 4, "leafColors": "gold", "menorahNight": 5})
+    assert status == 200
+    assert (config["gustMinutes"], config["leafColors"], config["menorahNight"]) == (4, "gold", 5)
+    for bad in ({"gustMinutes": "4"}, {"gustMinutes": 3}, {"countdown": 1}, {"menorahNight": 9}):
+        assert post(f"{base}/config", bad)[0] == 400, bad

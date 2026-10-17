@@ -99,3 +99,10 @@ test('every scene the calendar can pick is a choice on the control page', () => 
     }
   }
 });
+
+test('the radar interval can be stretched to 30 minutes or turned off, except on Christmas Eve', () => {
+  assert.equal(sceneAt(at(12, 1, 19, 15).getTime(), 'auto', { radarEvery: 30 }), 'christmas');
+  assert.equal(sceneAt(at(12, 1, 19, 30).getTime(), 'auto', { radarEvery: 30 }), 'santa');
+  assert.equal(sceneAt(at(12, 1, 19, 0).getTime(), 'auto', { radarEvery: 0 }), 'christmas');
+  assert.equal(sceneAt(at(12, 24, 19, 7).getTime(), 'auto', { radarEvery: 0 }), 'santa');
+});

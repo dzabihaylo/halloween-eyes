@@ -36,6 +36,28 @@ PERFORMANCE_NAMES = (
 #: fails if the two lists drift apart.
 SCENE_CHOICES = ("auto", "eyes", "leaves", "menorah", "christmas", "santa")
 
+#: Per-scene settings and their allowed values, in the order the control page
+#: shows them. A copy of SCENE_OPTIONS in public/js/scenes/options.js;
+#: tests/test_serve.py fails if the two drift apart.
+SCENE_OPTIONS = {
+    "leafColors": ("autumn", "gold", "crimson"),
+    "gustMinutes": (1, 2, 4),
+    "menorahNight": ("auto", 1, 2, 3, 4, 5, 6, 7, 8),
+    "burnDown": (True, False),
+    "snowAmount": ("light", "steady", "blizzard"),
+    "countdown": (True, False),
+    "radarEvery": (15, 30, 0),
+}
+SCENE_OPTION_DEFAULTS = {
+    "leafColors": "autumn",
+    "gustMinutes": 2,
+    "menorahNight": "auto",
+    "burnDown": True,
+    "snowAmount": "steady",
+    "countdown": True,
+    "radarEvery": 15,
+}
+
 #: Allowed values. Anything else is rejected rather than coerced.
 VALID = {
     "shape": {"amber", "ember", "aniridia"},
@@ -45,6 +67,7 @@ VALID = {
     # A test gag loops one performance for two minutes (docs/specs/2026-10-05-test-gags-design.md).
     "testGag": {"off", *PERFORMANCE_NAMES},
     "scene": set(SCENE_CHOICES),
+    **{key: set(values) for key, values in SCENE_OPTIONS.items()},
 }
 
 DEFAULTS = {
@@ -56,6 +79,7 @@ DEFAULTS = {
     "testGag": "off",
     "testGagAt": 0,
     "scene": "auto",
+    **SCENE_OPTION_DEFAULTS,
 }
 
 #: A change is scheduled this far ahead so both windows, polling every 2s,

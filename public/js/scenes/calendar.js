@@ -5,6 +5,7 @@
 // docs/specs/2026-10-16-seasonal-scenes-design.md has the calendar as a table.
 
 import { DEFAULT_SHOW_CONFIG } from '../director.js';
+import { opt } from './options.js';
 
 export const SCENE_NAMES = ['eyes', 'leaves', 'menorah', 'christmas', 'santa'];
 /** What the phone can pick. `auto` follows the calendar. */
@@ -17,8 +18,7 @@ export const SCENE_CHOICES = ['auto', ...SCENE_NAMES];
  */
 export const HANUKKAH_FIRST_EVENING = { 2026: [12, 4] };
 
-/** Santa radar interrupts Christmas evenings for the first RADAR_FOR_MIN of every RADAR_EVERY_MIN. */
-export const RADAR_EVERY_MIN = 15;
+/** Santa radar interrupts Christmas evenings for the first RADAR_FOR_MIN of every `radarEvery` minutes (0 = never). */
 export const RADAR_FOR_MIN = 2;
 
 // Whole days since the epoch for a calendar date. Via UTC so a DST change, which
@@ -49,13 +49,14 @@ export function seasonFor(date) {
 }
 
 /** The scene on screen at tMs. A forced choice from the phone or URL wins; anything else follows the calendar. */
-export function sceneAt(tMs, choice = 'auto') {
+export function sceneAt(tMs, choice = 'auto', opts) {
   if (choice !== 'auto' && SCENE_NAMES.includes(choice)) return choice;
   const date = new Date(tMs);
   const season = seasonFor(date);
   if (season !== 'christmas') return season;
   if (date.getMonth() === 11 && date.getDate() === 24) return 'santa';
-  return date.getMinutes() % RADAR_EVERY_MIN < RADAR_FOR_MIN ? 'santa' : 'christmas';
+  const every = opt(opts, 'radarEvery');
+  return every && date.getMinutes() % every < RADAR_FOR_MIN ? 'santa' : 'christmas';
 }
 
 /** 0 at the start of show hours, 1 at the end, clamped. Drives burn-down and snow depth. */

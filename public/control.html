@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <!--
-  Phone control page for the Halloween eyes.
+  Phone control page for the window show.
 
-  Four toggles (shape, color, crowding, energy drift) that POST to /config on
-  the show server. The server schedules the change a few seconds ahead so both
-  windows switch on the same frame. The show never depends on this page — if it
-  can't reach the Pi, the eyes keep running on their last config.
+  Pick the show (or leave it on Auto, which follows the calendar), then tweak the
+  show that is on screen: only its settings are listed. Every button POSTs to
+  /config on the show server, which schedules the change a few seconds ahead so
+  both windows switch on the same frame. The show never depends on this page —
+  if it can't reach the Pi, the windows keep running on their last config.
 
   Open from a phone on the same LAN:  http://<pi-ip>:8080/control.html
 -->
@@ -13,7 +14,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Eyes Control</title>
+<title>Window Show</title>
 <style>
   :root { color-scheme: dark; }
   body {
@@ -22,6 +23,7 @@
     font: 16px/1.5 system-ui, -apple-system, sans-serif;
   }
   h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 0 0 18px; }
   p.sub { margin: 0 0 28px; color: #7C7490; font-size: .9rem; }
   fieldset { border: 0; padding: 0; margin: 0 0 26px; }
   legend {
@@ -34,70 +36,147 @@
     background: #1B1726; color: #E9E4DA;
     border: 1px solid #2E2839; border-radius: 6px; cursor: pointer;
   }
+  .row.nights button { flex: 1 0 18%; padding: 14px 6px; }
   button[aria-pressed="true"] { background: #F0A72C; color: #161018; border-color: #F0A72C; }
+  #now { margin: 0 0 22px; padding-top: 22px; border-top: 1px solid #2E2839; }
+  #now b { color: #F0A72C; }
+  section[hidden] { display: none; }
   #status { min-height: 1.5em; font-size: .88rem; color: #7C7490; }
 </style>
 </head>
 <body>
-  <h1>Halloween Eyes</h1>
+  <h1>Window Show</h1>
   <p class="sub">Changes apply to both windows together, about five seconds after you tap.</p>
 
   <fieldset><legend>Show</legend><div class="row">
     <button data-key="scene" data-value="auto">Auto (by date)</button>
     <button data-key="scene" data-value="eyes">Eyes</button>
     <button data-key="scene" data-value="leaves">Leaves</button>
+    <button data-key="scene" data-value="menorah">Menorah</button>
+    <button data-key="scene" data-value="christmas">Snow + countdown</button>
+    <button data-key="scene" data-value="santa">Santa radar</button>
   </div></fieldset>
 
-  <fieldset><legend>Shape</legend><div class="row">
-    <button data-key="shape" data-value="amber">Amber</button>
-    <button data-key="shape" data-value="ember">Ember</button>
-    <button data-key="shape" data-value="aniridia">Aniridia</button>
-  </div></fieldset>
+  <p id="now" aria-live="polite"></p>
 
-  <fieldset><legend>Color</legend><div class="row">
-    <button data-key="palette" data-value="amber">Amber</button>
-    <button data-key="palette" data-value="green">Cat green</button>
-    <button data-key="palette" data-value="violet">Violet</button>
-    <button data-key="palette" data-value="ghost">Ghost blue</button>
-    <button data-key="palette" data-value="slime">Slime</button>
-  </div></fieldset>
+  <section data-group="eyes">
+    <fieldset><legend>Shape</legend><div class="row">
+      <button data-key="shape" data-value="amber">Amber</button>
+      <button data-key="shape" data-value="ember">Ember</button>
+      <button data-key="shape" data-value="aniridia">Aniridia</button>
+    </div></fieldset>
 
-  <fieldset><legend>Crowding</legend><div class="row">
-    <button data-key="crowdStyle" data-value="shrink">Shrink</button>
-    <button data-key="crowdStyle" data-value="squash">Squash</button>
-  </div></fieldset>
+    <fieldset><legend>Color</legend><div class="row">
+      <button data-key="palette" data-value="amber">Amber</button>
+      <button data-key="palette" data-value="green">Cat green</button>
+      <button data-key="palette" data-value="violet">Violet</button>
+      <button data-key="palette" data-value="ghost">Ghost blue</button>
+      <button data-key="palette" data-value="slime">Slime</button>
+    </div></fieldset>
 
-  <fieldset><legend>Energy drift</legend><div class="row">
-    <button data-key="energyDrift" data-value="true">On</button>
-    <button data-key="energyDrift" data-value="false">Off</button>
-  </div></fieldset>
+    <fieldset><legend>Crowding</legend><div class="row">
+      <button data-key="crowdStyle" data-value="shrink">Shrink</button>
+      <button data-key="crowdStyle" data-value="squash">Squash</button>
+    </div></fieldset>
 
-  <fieldset><legend>Test a gag</legend>
-    <p class="sub">Loops one performance on both windows for 2 minutes, starting in about 5 seconds.</p>
-    <div class="row">
-    <button data-key="testGag" data-value="crossEyed">Cross-eyed</button>
-    <button data-key="testGag" data-value="wallEyed">Wall-eyed</button>
-    <button data-key="testGag" data-value="wanderingEye">Wandering eye</button>
-    <button data-key="testGag" data-value="bothOneWindow">Both in one window</button>
-    <button data-key="testGag" data-value="lockOn">Lock on</button>
-    <button data-key="testGag" data-value="suspicious">Suspicious</button>
-    <button data-key="testGag" data-value="mockSurprise">Mock surprise</button>
-    <button data-key="testGag" data-value="slowSquint">Slow squint</button>
-    <button data-key="testGag" data-value="off">Stop</button>
-  </div></fieldset>
+    <fieldset><legend>Energy drift</legend><div class="row">
+      <button data-key="energyDrift" data-value="true">On</button>
+      <button data-key="energyDrift" data-value="false">Off</button>
+    </div></fieldset>
+
+    <fieldset><legend>Test a gag</legend>
+      <p class="sub">Loops one performance on both windows for 2 minutes, starting in about 5 seconds.</p>
+      <div class="row">
+      <button data-key="testGag" data-value="crossEyed">Cross-eyed</button>
+      <button data-key="testGag" data-value="wallEyed">Wall-eyed</button>
+      <button data-key="testGag" data-value="wanderingEye">Wandering eye</button>
+      <button data-key="testGag" data-value="bothOneWindow">Both in one window</button>
+      <button data-key="testGag" data-value="lockOn">Lock on</button>
+      <button data-key="testGag" data-value="suspicious">Suspicious</button>
+      <button data-key="testGag" data-value="mockSurprise">Mock surprise</button>
+      <button data-key="testGag" data-value="slowSquint">Slow squint</button>
+      <button data-key="testGag" data-value="off">Stop</button>
+    </div></fieldset>
+  </section>
+
+  <section data-group="leaves" hidden>
+    <fieldset><legend>Leaf colors</legend><div class="row">
+      <button data-key="leafColors" data-value="autumn">Autumn mix</button>
+      <button data-key="leafColors" data-value="gold">Gold</button>
+      <button data-key="leafColors" data-value="crimson">Crimson</button>
+    </div></fieldset>
+
+    <fieldset><legend>Wind gust</legend><div class="row">
+      <button data-key="gustMinutes" data-value="1">Every minute</button>
+      <button data-key="gustMinutes" data-value="2">Every 2 min</button>
+      <button data-key="gustMinutes" data-value="4">Every 4 min</button>
+    </div></fieldset>
+  </section>
+
+  <section data-group="menorah" hidden>
+    <fieldset><legend>Night</legend>
+      <p class="sub">Auto uses the date. Outside Hanukkah it steps through all eight nights so you can check each one.</p>
+      <div class="row nights">
+      <button data-key="menorahNight" data-value="auto">Auto</button>
+      <button data-key="menorahNight" data-value="1">1</button>
+      <button data-key="menorahNight" data-value="2">2</button>
+      <button data-key="menorahNight" data-value="3">3</button>
+      <button data-key="menorahNight" data-value="4">4</button>
+      <button data-key="menorahNight" data-value="5">5</button>
+      <button data-key="menorahNight" data-value="6">6</button>
+      <button data-key="menorahNight" data-value="7">7</button>
+      <button data-key="menorahNight" data-value="8">8</button>
+    </div></fieldset>
+
+    <fieldset><legend>Candles burn down through the evening</legend><div class="row">
+      <button data-key="burnDown" data-value="true">On</button>
+      <button data-key="burnDown" data-value="false">Off</button>
+    </div></fieldset>
+  </section>
+
+  <section data-group="christmas" hidden>
+    <fieldset><legend>Snow</legend><div class="row">
+      <button data-key="snowAmount" data-value="light">Light</button>
+      <button data-key="snowAmount" data-value="steady">Steady</button>
+      <button data-key="snowAmount" data-value="blizzard">Blizzard</button>
+    </div></fieldset>
+
+    <fieldset><legend>Countdown</legend><div class="row">
+      <button data-key="countdown" data-value="true">On</button>
+      <button data-key="countdown" data-value="false">Snow only</button>
+    </div></fieldset>
+
+    <fieldset><legend>Santa radar check</legend>
+      <p class="sub">Interrupts snow for 2 minutes. Christmas Eve is radar all evening regardless.</p>
+      <div class="row">
+      <button data-key="radarEvery" data-value="15">Every 15 min</button>
+      <button data-key="radarEvery" data-value="30">Every 30 min</button>
+      <button data-key="radarEvery" data-value="0">Off</button>
+    </div></fieldset>
+  </section>
 
   <div id="status" role="status"></div>
 
 <script type="module">
-const UNREACHABLE = 'Cannot reach the Pi. The eyes keep running regardless.';
+import { sceneAt } from './js/scenes/calendar.js';
+
+const UNREACHABLE = 'Cannot reach the Pi. The show keeps running regardless.';
+const NAMES = { eyes: 'Eyes', leaves: 'Leaves', menorah: 'Menorah', christmas: 'Snow + countdown', santa: 'Santa radar' };
+// Which settings to list for each scene. Snow and the radar alternate on Christmas
+// evenings, so they share one group rather than flipping the page every few minutes.
+const GROUP = { eyes: 'eyes', leaves: 'leaves', menorah: 'menorah', christmas: 'christmas', santa: 'christmas' };
 
 const statusEl = document.getElementById('status');
+const nowEl = document.getElementById('now');
+const sections = [...document.querySelectorAll('section[data-group]')];
 const buttons = [...document.querySelectorAll('button[data-key]')];
 
-// data-value attributes are strings; energyDrift is a real boolean on the server,
-// which compares type as well as value.
+// data-value attributes are strings; the server compares type as well as value,
+// so booleans and numbers go back as real booleans and numbers.
 function parse(value) {
-  return value === 'true' ? true : value === 'false' ? false : value;
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return /^\d+$/.test(value) ? Number(value) : value;
 }
 
 const TEST_GAG_EXPIRY_MS = 120000; // matches director.js; a hint for the buttons only
@@ -110,6 +189,9 @@ function paint(config) {
     if (b.dataset.key === 'testGag') pressed = testRunning ? pressed : b.dataset.value === 'off';
     b.setAttribute('aria-pressed', String(pressed));
   }
+  const showing = sceneAt(Date.now(), config.scene, config);
+  nowEl.innerHTML = `On screen: <b>${NAMES[showing]}</b> ${config.scene === 'auto' ? '(by date)' : '(picked)'}`;
+  for (const s of sections) s.hidden = s.dataset.group !== GROUP[showing];
 }
 
 async function refresh() {

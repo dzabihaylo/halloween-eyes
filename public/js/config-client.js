@@ -10,6 +10,7 @@
 import { SHAPES, PALETTES } from './themes.js';
 import { PERFORMANCE_NAMES } from './poses.js';
 import { SCENE_CHOICES } from './scenes/calendar.js';
+import { SCENE_OPTIONS } from './scenes/options.js';
 
 const POLL_MS = 2000;
 
@@ -23,7 +24,8 @@ const ALLOWED = {
   energyDrift: [true, false],
   crowdStyle: ['shrink', 'squash'],
   testGag: ['off', ...PERFORMANCE_NAMES],
-  scene: SCENE_CHOICES
+  scene: SCENE_CHOICES,
+  ...SCENE_OPTIONS
 };
 // testGagAt is a time, not a choice from a list, so it is checked separately.
 const KEYS = [...Object.keys(ALLOWED), 'testGagAt'];

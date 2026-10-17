@@ -88,7 +88,7 @@ function drawScene(name, tMs) {
     scenes.drawScene(name, sceneCtx, tMs, {
       x0, vw: stage.viewportW, H: window.innerHeight, totalW: stage.totalW,
       left: stage.viewports.left, right: stage.viewports.right
-    });
+    }, state);
     return true;
   } catch (err) {
     // A broken scene must not leave a dark window. Back to the eyes for this session.
@@ -100,7 +100,7 @@ function drawScene(name, tMs) {
 
 function frame() {
   const now = Date.now() + clockOffset;
-  const name = scenes ? scenes.sceneAt(now, urlScene ?? state.scene) : 'eyes';
+  const name = scenes ? scenes.sceneAt(now, urlScene ?? state.scene, state) : 'eyes';
   if (name !== 'eyes' && drawScene(name, now)) {
     show('scene');
     requestAnimationFrame(frame);
