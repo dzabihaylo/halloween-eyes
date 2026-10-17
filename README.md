@@ -25,10 +25,14 @@ public/js/scenes/calendar.js. `?at=` runs the clock from that local time.
 
 ## Phone control page
 
-`http://eyes.local:8080/control.html` on the home Wi-Fi. Pick a show or leave it on
+`http://eyes.local:8080/control.html` on the home Wi-Fi, any time of day (the server runs
+all day as `eyes-server.service`; the show only adds the two windows). Pick a show or leave it on
 **Auto (by date)**; the page lists only the settings of the show on screen. Settings
 and their allowed values live in `public/js/scenes/options.js`, with a copy in
 `server/serve.py` that a test keeps in sync.
+
+**Power off** (tap twice) shuts the Pi down cleanly. Use it before unplugging:
+pulling the power on a running Pi can corrupt the SD card.
 
 ## Test
 
@@ -41,6 +45,7 @@ is treated as a file to execute, so `node --test tests/` fails to resolve.
 
 ## On the Pi
 
+    sudo sh ~/halloween-eyes/deploy/setup-root.sh       # once, and after a reflash: autologin, Wi-Fi power save off, Power off button
     bash ~/halloween-eyes/deploy/install-autostart.sh   # (re)install service, cron, idle sleep
     systemctl --user start halloween-eyes               # run the show now
     ~/halloween-eyes/deploy/screens.sh on               # wake the monitors (off: sleep them)
