@@ -274,3 +274,45 @@ def test_scene_settings_accept_exact_values_only(running):
     assert (config["gustMinutes"], config["leafColors"], config["menorahNight"]) == (4, "gold", 5)
     for bad in ({"gustMinutes": "4"}, {"gustMinutes": 3}, {"countdown": 1}, {"menorahNight": 9}):
         assert post(f"{base}/config", bad)[0] == 400, bad
+
+
+def serve_with_poweroff(tmp_path, cmd):
+    server = make_server(root=tmp_path, config_path=tmp_path / "config.json", port=0, bind="127.0.0.1", poweroff_cmd=cmd)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server, f"http://127.0.0.1:{server.server_address[1]}"
+
+
+def test_poweroff_runs_the_command(tmp_path):
+    marker = tmp_path / "ran"
+    server, base = serve_with_poweroff(tmp_path, ("touch", str(marker)))
+    try:
+        assert post(f"{base}/poweroff", {}) == (200, {"ok": True})
+        assert marker.exists()
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_poweroff_reports_a_failed_command(tmp_path):
+    server, base = serve_with_poweroff(tmp_path, ("sh", "-c", "echo no sudo rule >&2; exit 1"))
+    try:
+        assert post(f"{base}/poweroff", {}) == (500, {"error": "no sudo rule"})
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_poweroff_refuses_a_plain_form_post(tmp_path):
+    # A form on any web page can POST cross-origin without a preflight; JSON cannot.
+    marker = tmp_path / "ran"
+    server, base = serve_with_poweroff(tmp_path, ("touch", str(marker)))
+    try:
+        request = urllib.request.Request(f"{base}/poweroff", data=b"x=1", method="POST",
+                                         headers={"Content-Type": "application/x-www-form-urlencoded"})
+        with pytest.raises(urllib.error.HTTPError) as err:
+            urllib.request.urlopen(request, timeout=5)
+        assert err.value.code == 415
+        assert not marker.exists()
+    finally:
+        server.shutdown()
+        server.server_close()

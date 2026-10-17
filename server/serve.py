@@ -11,12 +11,14 @@ Run:
 Security: bind to the LAN only and never port-forward this. The write endpoint
 is unauthenticated, which is acceptable because the blast radius is four enum
 values on a Halloween decoration — but only while it stays off the internet.
+The same goes for /poweroff: anyone on the home Wi-Fi can turn the Pi off.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import logging
+import subprocess
 import time
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -89,6 +91,11 @@ SCHEDULE_LEAD_MS = 5000
 
 MAX_BODY_BYTES = 4096
 
+#: A clean shutdown, so pulling the plug afterwards cannot corrupt the SD card
+#: (on 2026-10-17 a hard power-off left the Wi-Fi config as empty files).
+#: deploy/sudoers-poweroff allows exactly this command without a password.
+POWEROFF_CMD = ("sudo", "-n", "/usr/bin/systemctl", "poweroff")
+
 
 def _allowed(key: str, value) -> bool:
     """True only for an exact allowed value.
@@ -134,7 +141,9 @@ def _validate(payload: dict) -> tuple[dict | None, str | None]:
     return payload, None
 
 
-def make_server(root: Path, config_path: Path, port: int, bind: str) -> ThreadingHTTPServer:
+def make_server(
+    root: Path, config_path: Path, port: int, bind: str, poweroff_cmd=POWEROFF_CMD
+) -> ThreadingHTTPServer:
     root = Path(root).resolve()
     config_path = Path(config_path)
 
@@ -169,7 +178,27 @@ def make_server(root: Path, config_path: Path, port: int, bind: str) -> Threadin
                 return
             super().do_GET()
 
+        def _poweroff(self) -> None:
+            # Requiring a JSON content type makes a browser send a CORS preflight,
+            # which this server never approves, so another web page open on a
+            # phone cannot switch the Pi off behind the user's back.
+            if (self.headers.get("Content-Type") or "").split(";")[0].strip() != "application/json":
+                self._send_json(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, {"error": "send application/json"})
+                return
+            # systemctl poweroff only queues the shutdown, so this returns at once
+            # and the reply still reaches the phone.
+            result = subprocess.run(poweroff_cmd, capture_output=True, text=True, timeout=15)
+            if result.returncode != 0:
+                logger.warning("poweroff failed: %s", result.stderr.strip())
+                self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": result.stderr.strip() or "poweroff failed"})
+                return
+            logger.info("powering off at the control page's request")
+            self._send_json(HTTPStatus.OK, {"ok": True})
+
         def do_POST(self):  # noqa: N802 - stdlib naming
+            if self.path.split("?")[0] == "/poweroff":
+                self._poweroff()
+                return
             if self.path.split("?")[0] != "/config":
                 self._send_json(HTTPStatus.NOT_FOUND, {"error": "no such endpoint"})
                 return
