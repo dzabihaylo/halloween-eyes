@@ -141,9 +141,10 @@ export function updateEye(refs, s) {
   const slit = s.pupilShape === 'slit';
   refs.pupilRound.setAttribute('display', slit ? 'none' : 'inline');
   refs.pupilSlit.setAttribute('display', slit ? 'inline' : 'none');
-  refs.pupilRound.setAttribute('r', (g.pupil.round * s.pupil).toFixed(2));
-  refs.pupilSlit.setAttribute('rx', (g.pupil.slitRx * s.pupil).toFixed(2));
-  refs.pupilSlit.setAttribute('ry', (g.pupil.slitRy * s.pupil).toFixed(2));
+  const size = g.pupilFixed ? 1 : s.pupil;
+  refs.pupilRound.setAttribute('r', (g.pupil.round * size).toFixed(2));
+  refs.pupilSlit.setAttribute('rx', (g.pupil.slitRx * size).toFixed(2));
+  refs.pupilSlit.setAttribute('ry', (g.pupil.slitRy * size).toFixed(2));
 
   // Brow depth scales about the eye's top edge.
   const yL = g.top + (g.brow.yLeft - g.top) * s.brow;

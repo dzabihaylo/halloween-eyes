@@ -74,7 +74,7 @@ export function eyeGeometry(shapeName, side, base = BASE) {
   const glintX = base.cx + (side === 'L' ? base.glintDX : -base.glintDX) * rx;
   const glintY = base.cy + base.glintDY * ry;
 
-  const pupilR = base.pupilR * rx;
+  const pupilR = (shape.pupilR ?? base.pupilR) * rx;
 
   return {
     side, shapeName, rx, ry, top, eyeHeight,
@@ -82,6 +82,7 @@ export function eyeGeometry(shapeName, side, base = BASE) {
     hasIris: shape.hasIris,
     halo: shape.halo,
     defaultPupil: shape.pupil,
+    pupilFixed: Boolean(shape.pupilFixed),
     irisR: base.irisR * rx,
     pupil: { round: pupilR, slitRx: pupilR * 0.52, slitRy: pupilR * 1.72 },
     brow: { yLeft, yRight },

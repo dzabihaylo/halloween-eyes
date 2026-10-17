@@ -22,7 +22,10 @@ export const POSES = {
   bothOneWindow: { target: -0.3, vergence:  0.0, lid: 0.00, brow: 1.00, pupil: 1.00, stage: 'crowdLeft' },
   lockOn:        { target:  0.0, vergence:  0.0, lid: 0.00, brow: 1.70, pupil: 1.20 },
   suspicious:    { target: -0.35, vergence: 0.0, lid: 0.34, brow: 1.45, pupil: 1.00 },
-  mockSurprise:  { target:  0.0, vergence:  0.0, lid: 0.00, brow: 0.12, pupil: 0.62 }
+  mockSurprise:  { target:  0.0, vergence:  0.0, lid: 0.00, brow: 0.12, pupil: 0.62 },
+  // Cartoon side-eye (DuckTales 2017): lids sink to a slit, brows clamp down,
+  // gaze slides sideways — all slowly, so the suspicion builds.
+  slowSquint:    { target: -0.6, vergence:  0.0, lid: 0.55, brow: 1.60, pupil: 0.90 }
 };
 
 /**
@@ -40,11 +43,13 @@ export const PROFILES = {
   bothOneWindow: { out: 1600, hold: 2800, back: 1600, overshoot: 0.00 },
   lockOn:        { out:  120, hold: 1400, back:  700, overshoot: 0.00 },
   suspicious:    { out:  600, hold: 1800, back:  700, overshoot: 0.00 },
-  mockSurprise:  { out:  130, hold:  900, back:  600, overshoot: 0.02 }
+  mockSurprise:  { out:  130, hold:  900, back:  600, overshoot: 0.02 },
+  // Slow is the whole joke: a long squint in, a longer hold, then snap back open.
+  slowSquint:    { out: 2400, hold: 3000, back:  900, overshoot: 0.00 }
 };
 
 export const GAG_NAMES = ['crossEyed', 'wallEyed', 'wanderingEye', 'bothOneWindow'];
-export const REACTION_NAMES = ['lockOn', 'suspicious', 'mockSurprise'];
+export const REACTION_NAMES = ['lockOn', 'suspicious', 'mockSurprise', 'slowSquint'];
 
 /** Every performance, gags then reactions. The one list test gags validate against. */
 export const PERFORMANCE_NAMES = [...GAG_NAMES, ...REACTION_NAMES];
