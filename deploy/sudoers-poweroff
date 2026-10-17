@@ -1,0 +1,4 @@
+# Lets the show server power the Pi off from the phone control page
+# (server/serve.py POWEROFF_CMD). Exactly this one command, nothing else.
+# Installed to /etc/sudoers.d/eyes-poweroff by deploy/setup-root.sh.
+eyesadmin ALL=(root) NOPASSWD: /usr/bin/systemctl poweroff

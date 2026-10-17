@@ -41,6 +41,8 @@
   #now { margin: 0 0 22px; padding-top: 22px; border-top: 1px solid #2E2839; }
   #now b { color: #F0A72C; }
   section[hidden] { display: none; }
+  #power { margin-top: 36px; padding-top: 22px; border-top: 1px solid #2E2839; }
+  #poweroff[data-armed] { background: #B3261E; color: #fff; border-color: #B3261E; }
   #status { min-height: 1.5em; font-size: .88rem; color: #7C7490; }
 </style>
 </head>
@@ -157,6 +159,11 @@
 
   <div id="status" role="status"></div>
 
+  <fieldset id="power"><legend>Pi</legend>
+    <p class="sub">Shuts the Pi down cleanly, so it is safe to unplug. To start it again, unplug and replug it, or press its power button.</p>
+    <div class="row"><button id="poweroff">Power off</button></div>
+  </fieldset>
+
 <script type="module">
 import { sceneAt } from './js/scenes/calendar.js';
 
@@ -230,8 +237,41 @@ for (const b of buttons) {
   });
 }
 
+// Two taps, so a stray touch in a pocket cannot end the show.
+const powerButton = document.getElementById('poweroff');
+let disarmTimer;
+powerButton.addEventListener('click', async () => {
+  if (!powerButton.hasAttribute('data-armed')) {
+    powerButton.setAttribute('data-armed', '');
+    powerButton.textContent = 'Tap again to power off';
+    disarmTimer = setTimeout(() => {
+      powerButton.removeAttribute('data-armed');
+      powerButton.textContent = 'Power off';
+    }, 4000);
+    return;
+  }
+  clearTimeout(disarmTimer);
+  powerButton.removeAttribute('data-armed');
+  powerButton.textContent = 'Power off';
+  statusEl.textContent = 'Sending…';
+  try {
+    const response = await fetch('poweroff', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}'
+    });
+    const data = await response.json();
+    if (!response.ok) { statusEl.textContent = `Power off failed: ${data.error}`; return; }
+    // Stop polling, or the outage message would claim the show is still running.
+    clearInterval(refreshTimer);
+    statusEl.textContent = 'Powering off. Wait for the green light to stop before unplugging.';
+  } catch {
+    statusEl.textContent = 'Could not reach the Pi.';
+  }
+});
+
 refresh();
-setInterval(refresh, 5000);
+const refreshTimer = setInterval(refresh, 5000);
 </script>
 </body>
 </html>
