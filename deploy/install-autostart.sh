@@ -12,9 +12,9 @@ DEPLOY="$(cd "$(dirname "$0")" && pwd)"
 # survives the gap while the desktop restarts (see deploy/lightdm/).
 loginctl enable-linger "$USER"
 
-for tool in swayidle wlopm; do
+for tool in swayidle wlopm wlrctl; do
   if ! command -v "$tool" >/dev/null; then
-    echo "Missing $tool. Install it first: sudo apt install swayidle wlopm" >&2
+    echo "Missing $tool. Install it first: sudo apt install swayidle wlopm wlrctl" >&2
     exit 1
   fi
 done
