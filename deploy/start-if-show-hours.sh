@@ -20,7 +20,8 @@ CRONTAB="$DEPLOY/crontab.example"
 SERVICE="halloween-eyes.service"
 
 # Pull "minute hour month" out of the cron line that runs a given verb.
-# Matches e.g. "45 17 * 10 * systemctl --user start halloween-eyes.service".
+# Matches e.g. "45 17 * 10-12 * systemctl --user start halloween-eyes.service".
+# The month is one number or a range.
 cron_fields() {
   awk -v verb="$1" -v svc="$SERVICE" '
     $6 == "systemctl" && $7 == "--user" && $8 == verb && $9 == svc { print $1, $2, $4; exit }
@@ -31,12 +32,18 @@ read -r start_min start_hour start_month <<<"$(cron_fields start)" || true
 read -r stop_min stop_hour stop_month <<<"$(cron_fields stop)" || true
 
 # Refuse to guess if the crontab changed shape; a loud failure beats a wrong start.
-for v in "$start_min" "$start_hour" "$start_month" "$stop_min" "$stop_hour" "$stop_month"; do
+for v in "$start_min" "$start_hour" "$stop_min" "$stop_hour"; do
   if ! [[ "$v" =~ ^[0-9]+$ ]]; then
     echo "start-if-show-hours: cannot read the show window from $CRONTAB" >&2
     exit 1
   fi
 done
+if ! [[ "$start_month" =~ ^([0-9]+)(-([0-9]+))?$ ]]; then
+  echo "start-if-show-hours: cannot read the show months from $CRONTAB" >&2
+  exit 1
+fi
+first_month=$((10#${BASH_REMATCH[1]}))
+last_month=$((10#${BASH_REMATCH[3]:-${BASH_REMATCH[1]}}))
 if [[ "$start_month" != "$stop_month" ]]; then
   echo "start-if-show-hours: start and stop lines name different months" >&2
   exit 1
@@ -54,13 +61,13 @@ now_minutes=$((10#${BASH_REMATCH[2]} * 60 + 10#${BASH_REMATCH[3]}))
 start_minutes=$((10#$start_hour * 60 + 10#$start_min))
 stop_minutes=$((10#$stop_hour * 60 + 10#$stop_min))
 
-# Same rule cron applies: in the show month, start <= now < stop.
-if (( now_month == 10#$start_month && now_minutes >= start_minutes && now_minutes < stop_minutes )); then
+# Same rule cron applies: in a show month, start <= now < stop.
+if (( now_month >= first_month && now_month <= last_month && now_minutes >= start_minutes && now_minutes < stop_minutes )); then
   decision=start
 else
   decision=skip
 fi
-printf 'start-if-show-hours: now=%s window=month %s %02d:%02d-%02d:%02d -> %s\n' \
+printf 'start-if-show-hours: now=%s window=months %s %02d:%02d-%02d:%02d -> %s\n' \
   "$now" "$start_month" "$start_hour" "$start_min" "$stop_hour" "$stop_min" "$decision"
 
 [[ "$decision" == start ]] || exit 0
