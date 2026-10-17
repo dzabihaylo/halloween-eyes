@@ -684,7 +684,8 @@ courtesy rather than a requirement.
 ## 8. Development workflow
 
 Build and tune in a browser on the Mac, where iteration is instant. Deploy by pushing to
-`main`, then pulling on the Pi (a read-only HTTPS clone of this public repo, so no keys
+`main`, then pulling on the Pi (a read-only HTTPS clone of
+`https://github.com/dzabihaylo/halloween-eyes.git`, so no keys
 live on the Pi): `ssh eyesadmin@eyes.local 'git -C ~/halloween-eyes pull --ff-only'`.
 The live `server/config.json` is gitignored, so a pull never touches it. Because the show is time-deterministic, any timestamp can be replayed on the
 desk, so visual tuning does not require standing in the yard.
