@@ -1,37 +1,49 @@
 // Leaf gusts (November).
 //
-// Leaves flutter down into a pile in the left window. Late in every two-minute
-// cycle a gust streaks across both windows and carries the pile behind the wall,
-// through the right window and off its far edge. Ambient leaves fall through both
-// windows the whole time.
+// Leaves flutter down into a pile in the left window. Late in every cycle a gust
+// streaks across both windows and carries the pile behind the wall, through the
+// right window and off its far edge. Ambient leaves fall through both windows the
+// whole time. Settings: leafColors, gustMinutes (the cycle length).
 //
 // Every position is a function of (time, leaf index). Nothing accumulates between
 // frames: the cycle ends with the pile blown away and the next starts empty, so a
 // window that restarts mid-gust draws exactly what the other window is drawing.
 
 import { rand01 } from '../rng.js';
+import { opt } from './options.js';
 
-export const CYCLE_MS = 120000;
 export const PILE_COUNT = 14;
 export const AMBIENT_COUNT = 7;
 
-const FIRST_SPAWN_MS = 2000;
-const SPAWN_SPREAD_MS = 60000;   // pile leaves arrive over the first minute
 const FALL_MIN_MS = 8000;
-const FALL_SPAN_MS = 4000;       // last leaf lands by ~74s, well before the earliest gust
-
-export const GUST_EARLIEST_MS = 85000;
-export const GUST_JITTER_MS = 12000;
+const FALL_SPAN_MS = 4000;
 const GUST_STAGGER_MS = 1400;    // leaves lift one after another, not as a block
 const TRAVEL_MIN_MS = 5000;
-const TRAVEL_SPAN_MS = 2500;     // latest leaf gone by ~106s, before the cycle ends
+const TRAVEL_SPAN_MS = 2500;
 const WIND_MS = 5000;
 
-// Fill and edge for each leaf color: autumn oranges, reds and golds.
-const COLORS = [
-  ['#f08a2e', '#a8461a'], ['#d9442a', '#7e1f12'], ['#f2b632', '#a86c12'],
-  ['#c0532a', '#6e2810'], ['#e66a24', '#8f3512']
-];
+/**
+ * The cycle's beats, scaled to its length. Checked for the shortest cycle (1 min):
+ * the last leaf lands by ~38s, the gust starts at 42–47s, the last leaf is gone by
+ * ~56s. Longer cycles only add calm.
+ */
+export function timing(opts) {
+  const cycle = opt(opts, 'gustMinutes') * 60000;
+  return {
+    cycle,
+    firstSpawn: 0.02 * cycle,
+    spawnSpread: 0.45 * cycle,
+    gustEarliest: 0.7 * cycle,
+    gustJitter: 0.08 * cycle
+  };
+}
+
+// Fill and edge per leaf, by palette.
+const PALETTES = {
+  autumn: [['#f08a2e', '#a8461a'], ['#d9442a', '#7e1f12'], ['#f2b632', '#a86c12'], ['#c0532a', '#6e2810'], ['#e66a24', '#8f3512']],
+  gold: [['#f7c948', '#a8820f'], ['#f2b632', '#a86c12'], ['#ffd866', '#b08a1c'], ['#e9a31f', '#99610c']],
+  crimson: [['#d9442a', '#7e1f12'], ['#b8232f', '#650f16'], ['#e0563a', '#86251a'], ['#a81f3d', '#5c0d1e']]
+};
 
 // Unit leaves, about 24 units tall, stem pointing down.
 const SHAPES = {
@@ -46,27 +58,29 @@ const VEINS = {
 const easeInOut = (u) => (u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2);
 
 /** When this cycle's gust starts, in ms after the cycle begins. */
-export function gustAt(cycle) {
-  return GUST_EARLIEST_MS + rand01(cycle, 101) * GUST_JITTER_MS;
+export function gustAt(cycle, opts) {
+  const t = timing(opts);
+  return t.gustEarliest + rand01(cycle, 101) * t.gustJitter;
 }
 
 function look(seed) {
   return {
     kind: rand01(seed, 5) < 0.6 ? 'maple' : 'oak',
-    color: Math.floor(rand01(seed, 6) * COLORS.length),
+    tone: rand01(seed, 6),                // picks a color from whichever palette is on
     size: 0.09 + rand01(seed, 7) * 0.04   // fraction of the viewport height
   };
 }
 
 /**
- * Pile leaf `i` at tMs, in stage pixels: { x, y, rot, size, kind, color }, or null
+ * Pile leaf `i` at tMs, in stage pixels: { x, y, rot, size, kind, tone }, or null
  * when it has not fallen yet this cycle or has already blown away.
  */
-export function pileLeaf(tMs, i, geo) {
-  const cycle = Math.floor(tMs / CYCLE_MS);
-  const into = tMs - cycle * CYCLE_MS;
+export function pileLeaf(tMs, i, geo, opts) {
+  const t = timing(opts);
+  const cycle = Math.floor(tMs / t.cycle);
+  const into = tMs - cycle * t.cycle;
   const seed = cycle * 64 + i;
-  const spawn = FIRST_SPAWN_MS + (i / PILE_COUNT) * SPAWN_SPREAD_MS;
+  const spawn = t.firstSpawn + (i / PILE_COUNT) * t.spawnSpread;
   if (into < spawn) return null;
 
   const { H } = geo;
@@ -89,7 +103,7 @@ export function pileLeaf(tMs, i, geo) {
     return { x: restX, y: restY, rot: restRot + 0.06 * Math.sin(ms / 700 + i) };
   };
 
-  const gust = gustAt(cycle) + rand01(seed, 9) * GUST_STAGGER_MS;
+  const gust = gustAt(cycle, opts) + rand01(seed, 9) * GUST_STAGGER_MS;
   if (into < gust) return { ...settled(into), ...look(seed) };
 
   const u = (into - gust) / (TRAVEL_MIN_MS + rand01(seed, 10) * TRAVEL_SPAN_MS);
@@ -125,9 +139,10 @@ export function ambientLeaf(tMs, i, geo) {
 }
 
 /** How hard the wind is blowing, 0..1: a swell around each gust. */
-export function gustStrength(tMs) {
-  const cycle = Math.floor(tMs / CYCLE_MS);
-  const w = (tMs - cycle * CYCLE_MS - gustAt(cycle) + 600) / WIND_MS;
+export function gustStrength(tMs, opts) {
+  const { cycle: len } = timing(opts);
+  const cycle = Math.floor(tMs / len);
+  const w = (tMs - cycle * len - gustAt(cycle, opts) + 600) / WIND_MS;
   return w > 0 && w < 1 ? Math.sin(Math.PI * w) : 0;
 }
 
@@ -135,9 +150,9 @@ export function gustStrength(tMs) {
 
 let paths = null;   // Path2D exists only in the browser, so build on first draw
 
-function drawLeaf(ctx, leaf, H, alpha) {
+function drawLeaf(ctx, leaf, H, alpha, palette) {
   const s = (leaf.size * H) / 24;
-  const [fill, edge] = COLORS[leaf.color];
+  const [fill, edge] = palette[Math.floor(leaf.tone * palette.length)];
   ctx.save();
   ctx.translate(leaf.x, leaf.y);
   ctx.rotate(leaf.rot);
@@ -155,10 +170,11 @@ function drawLeaf(ctx, leaf, H, alpha) {
   ctx.restore();
 }
 
-function drawWind(ctx, tMs, view) {
+function drawWind(ctx, tMs, view, opts) {
   const { vw, H, totalW } = view;
-  const cycle = Math.floor(tMs / CYCLE_MS);
-  const sinceGust = tMs - cycle * CYCLE_MS - gustAt(cycle);
+  const { cycle: len } = timing(opts);
+  const cycle = Math.floor(tMs / len);
+  const sinceGust = tMs - cycle * len - gustAt(cycle, opts);
   ctx.lineCap = 'round';
   ctx.lineWidth = H * 0.006;
   for (let k = 0; k < 4; k++) {
@@ -176,11 +192,12 @@ function drawWind(ctx, tMs, view) {
 }
 
 /** Draw this window's slice. ctx is already translated so stage x maps to this window. */
-export function draw(ctx, tMs, view) {
+export function draw(ctx, tMs, view, opts) {
   paths ??= {
     maple: new Path2D(SHAPES.maple), mapleVeins: new Path2D(VEINS.maple),
     oak: new Path2D(SHAPES.oak), oakVeins: new Path2D(VEINS.oak)
   };
+  const palette = PALETTES[opt(opts, 'leafColors')];
   const { x0, vw, H } = view;
   const margin = H * 0.15;
   const onScreen = (leaf) => leaf && leaf.x > x0 - margin && leaf.x < x0 + vw + margin;
@@ -194,11 +211,11 @@ export function draw(ctx, tMs, view) {
 
   for (let i = 0; i < AMBIENT_COUNT; i++) {
     const leaf = ambientLeaf(tMs, i, view);
-    if (onScreen(leaf)) drawLeaf(ctx, leaf, H, 0.9);
+    if (onScreen(leaf)) drawLeaf(ctx, leaf, H, 0.9, palette);
   }
-  drawWind(ctx, tMs, view);
+  drawWind(ctx, tMs, view, opts);
   for (let i = 0; i < PILE_COUNT; i++) {
-    const leaf = pileLeaf(tMs, i, view);
-    if (onScreen(leaf)) drawLeaf(ctx, leaf, H, 1);
+    const leaf = pileLeaf(tMs, i, view, opts);
+    if (onScreen(leaf)) drawLeaf(ctx, leaf, H, 1, palette);
   }
 }
