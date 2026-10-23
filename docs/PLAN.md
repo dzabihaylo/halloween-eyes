@@ -2444,7 +2444,7 @@ monitors and power. Expect one monitor only; the 3B has a single HDMI.
 
 ## Logs
 
-    journalctl --user -u halloween-eyes.service -n 100 --no-pager
+    journalctl --user-unit halloween-eyes.service -n 100 --no-pager
 ```
 
 - [ ] **Step 2: Run everything once more**

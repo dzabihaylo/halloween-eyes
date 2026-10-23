@@ -7,7 +7,7 @@
 # (deploy/start-if-show-hours.sh).
 #   Start now:  systemctl --user start halloween-eyes
 #   Stop now:   systemctl --user stop halloween-eyes
-#   Logs:       journalctl --user -u halloween-eyes -f
+#   Logs:       journalctl --user-unit halloween-eyes -f
 [Unit]
 Description=Halloween eye windows
 # The pages come from the all-day show server; starting the show starts it too.

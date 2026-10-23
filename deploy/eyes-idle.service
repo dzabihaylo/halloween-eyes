@@ -4,7 +4,7 @@
 # After 10 minutes with no keyboard/mouse input, the monitors sleep — unless the
 # show is running (deploy/screens.sh refuses to blank it). Any keyboard or mouse
 # input wakes them.
-#   Logs:  journalctl --user -u eyes-idle -f
+#   Logs:  journalctl --user-unit eyes-idle -f
 # Needs: sudo apt install swayidle wlopm
 [Unit]
 Description=Sleep the monitors when idle outside show hours
