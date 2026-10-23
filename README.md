@@ -50,8 +50,9 @@ is treated as a file to execute, so `node --test tests/` fails to resolve.
     systemctl --user start halloween-eyes               # run the show now
     ~/halloween-eyes/deploy/screens.sh on               # wake the monitors (off: sleep them)
 
-The show runs 17:45–23:30 nightly, October through December (`deploy/crontab.example`). Outside show
-hours the monitors sleep after 10 idle minutes; keyboard, mouse or SSH login wakes them.
+The show runs 17:45–23:30 nightly, October through December, plus 05:30–08:10 (sunrise) every
+October morning (`deploy/crontab.example`). Outside show hours the monitors sleep after 10
+idle minutes; keyboard, mouse or SSH login wakes them.
 After pulling changes to `deploy/`, re-run the installer — the service files and crontab
 are installed copies. The installer needs `swayidle`, `wlopm` and `wlrctl` (`wlrctl` nudges
 the mouse so the hidden cursor takes effect).
