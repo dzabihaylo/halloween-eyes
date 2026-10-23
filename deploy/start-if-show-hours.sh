@@ -5,7 +5,7 @@
 # on Oct 31 brings the eyes back instead of leaving them dark until tomorrow.
 # A 3am reboot still leaves the windows dark: outside the window this does nothing.
 #
-# The show window is NOT defined here. It is read from the start and stop lines
+# The show windows are NOT defined here. They are read from the start and stop lines
 # of deploy/crontab.example (the file install-autostart.sh installs), so the
 # boot check and the nightly schedule cannot drift apart.
 #
@@ -19,33 +19,23 @@ DEPLOY="$(cd "$(dirname "$0")" && pwd)"
 CRONTAB="$DEPLOY/crontab.example"
 SERVICE="halloween-eyes.service"
 
-# Pull "minute hour month" out of the cron line that runs a given verb.
+# Pull "minute hour month" out of every cron line that runs a given verb, in order.
 # Matches e.g. "45 17 * 10-12 * systemctl --user start halloween-eyes.service".
 # The month is one number or a range.
 cron_fields() {
   awk -v verb="$1" -v svc="$SERVICE" '
-    $6 == "systemctl" && $7 == "--user" && $8 == verb && $9 == svc { print $1, $2, $4; exit }
+    $6 == "systemctl" && $7 == "--user" && $8 == verb && $9 == svc { print $1, $2, $4 }
   ' "$CRONTAB"
 }
 
-read -r start_min start_hour start_month <<<"$(cron_fields start)" || true
-read -r stop_min stop_hour stop_month <<<"$(cron_fields stop)" || true
+# A read loop, not mapfile, so the DRY_RUN test also runs on macOS's bash 3.2.
+starts=() stops=()
+while read -r line; do starts+=("$line"); done < <(cron_fields start)
+while read -r line; do stops+=("$line"); done < <(cron_fields stop)
 
 # Refuse to guess if the crontab changed shape; a loud failure beats a wrong start.
-for v in "$start_min" "$start_hour" "$stop_min" "$stop_hour"; do
-  if ! [[ "$v" =~ ^[0-9]+$ ]]; then
-    echo "start-if-show-hours: cannot read the show window from $CRONTAB" >&2
-    exit 1
-  fi
-done
-if ! [[ "$start_month" =~ ^([0-9]+)(-([0-9]+))?$ ]]; then
-  echo "start-if-show-hours: cannot read the show months from $CRONTAB" >&2
-  exit 1
-fi
-first_month=$((10#${BASH_REMATCH[1]}))
-last_month=$((10#${BASH_REMATCH[3]:-${BASH_REMATCH[1]}}))
-if [[ "$start_month" != "$stop_month" ]]; then
-  echo "start-if-show-hours: start and stop lines name different months" >&2
+if (( ${#starts[@]} == 0 || ${#starts[@]} != ${#stops[@]} )); then
+  echo "start-if-show-hours: cannot pair start and stop lines in $CRONTAB" >&2
   exit 1
 fi
 
@@ -69,17 +59,38 @@ fi
 # 10# forces base 10, so "08" and "09" are not read as octal.
 now_month=$((10#${BASH_REMATCH[1]}))
 now_minutes=$((10#${BASH_REMATCH[2]} * 60 + 10#${BASH_REMATCH[3]}))
-start_minutes=$((10#$start_hour * 60 + 10#$start_min))
-stop_minutes=$((10#$stop_hour * 60 + 10#$stop_min))
 
-# Same rule cron applies: in a show month, start <= now < stop.
-if (( now_month >= first_month && now_month <= last_month && now_minutes >= start_minutes && now_minutes < stop_minutes )); then
-  decision=start
-else
-  decision=skip
-fi
-printf 'start-if-show-hours: now=%s window=months %s %02d:%02d-%02d:%02d -> %s\n' \
-  "$now" "$start_month" "$start_hour" "$start_min" "$stop_hour" "$stop_min" "$decision"
+decision=skip
+for i in "${!starts[@]}"; do
+  read -r start_min start_hour start_month <<<"${starts[$i]}"
+  read -r stop_min stop_hour stop_month <<<"${stops[$i]}"
+  for v in "$start_min" "$start_hour" "$stop_min" "$stop_hour"; do
+    if ! [[ "$v" =~ ^[0-9]+$ ]]; then
+      echo "start-if-show-hours: cannot read the show window from $CRONTAB" >&2
+      exit 1
+    fi
+  done
+  if [[ "$start_month" != "$stop_month" ]]; then
+    echo "start-if-show-hours: start and stop lines name different months" >&2
+    exit 1
+  fi
+  if ! [[ "$start_month" =~ ^([0-9]+)(-([0-9]+))?$ ]]; then
+    echo "start-if-show-hours: cannot read the show months from $CRONTAB" >&2
+    exit 1
+  fi
+  first_month=$((10#${BASH_REMATCH[1]}))
+  last_month=$((10#${BASH_REMATCH[3]:-${BASH_REMATCH[1]}}))
+  start_minutes=$((10#$start_hour * 60 + 10#$start_min))
+  stop_minutes=$((10#$stop_hour * 60 + 10#$stop_min))
+
+  # Same rule cron applies: in a show month, start <= now < stop.
+  if (( now_month >= first_month && now_month <= last_month && now_minutes >= start_minutes && now_minutes < stop_minutes )); then
+    decision=start
+  fi
+  printf 'start-if-show-hours: now=%s window=months %s %02d:%02d-%02d:%02d\n' \
+    "$now" "$start_month" "$((10#$start_hour))" "$((10#$start_min))" "$((10#$stop_hour))" "$((10#$stop_min))"
+done
+echo "start-if-show-hours: -> $decision"
 
 [[ "$decision" == start ]] || exit 0
 [[ -z "${DRY_RUN:-}" ]] || exit 0
