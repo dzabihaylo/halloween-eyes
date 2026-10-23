@@ -4,7 +4,7 @@
 # with no one logged in, so the phone control page (and its Power off button)
 # answers outside show hours too. The show windows load from it; if it restarts
 # mid-show, they keep running on their last config.
-#   Logs:  journalctl --user -u eyes-server -f
+#   Logs:  journalctl --user-unit eyes-server -f
 [Unit]
 Description=Halloween eyes show server and phone control page
 StartLimitIntervalSec=0
