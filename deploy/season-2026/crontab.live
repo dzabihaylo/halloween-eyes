@@ -1,0 +1,29 @@
+# The window show: on at 17:45, off at 23:30, nightly October through December
+# (Halloween eyes, then the seasonal scenes; public/js/scenes/calendar.js).
+# Plus a morning run in October only: 05:30 to sunrise. Sunrise in Detroit moves
+# ~8:04 -> ~8:13 across Oct 23-31, so a fixed 08:10 stop (same reasoning as the
+# fixed evening start, docs/DESIGN.md section 7.3).
+#
+# Time-gated, never start-on-boot: a reboot at 3am must leave the windows dark.
+# The service is NOT enabled at boot — cron alone decides when it runs.
+# cron has no session environment, so systemctl --user needs XDG_RUNTIME_DIR.
+#
+# The start and stop lines below are the ONE definition of the show windows:
+# start-if-show-hours.sh reads them at boot, pairing the Nth start with the Nth
+# stop, so a reboot inside a window (a power blip at 19:00) restarts the show and
+# a reboot outside them does not.
+# Keep their shape: "M H * MONTHS * systemctl --user start|stop halloween-eyes.service",
+# where MONTHS is one month or a range like 10-12.
+XDG_RUNTIME_DIR=/run/user/1000
+30 5 * 10 * systemctl --user start halloween-eyes.service
+# halloween all-day: 10 8 * 10 * systemctl --user stop  halloween-eyes.service
+45 17 * 10-12 * systemctl --user start halloween-eyes.service
+30 23 * 10-12 * systemctl --user stop  halloween-eyes.service
+@reboot bash $HOME/halloween-eyes/deploy/start-if-show-hours.sh 2>&1 | logger -t halloween-eyes
+0 17 31 10 * curl -s -X POST -H "Content-Type: application/json" -d '{"palette":"amber"}' localhost:8080/config >/dev/null # halloween colour cycle
+0 18 31 10 * curl -s -X POST -H "Content-Type: application/json" -d '{"palette":"green"}' localhost:8080/config >/dev/null # halloween colour cycle
+0 19 31 10 * curl -s -X POST -H "Content-Type: application/json" -d '{"palette":"violet"}' localhost:8080/config >/dev/null # halloween colour cycle
+0 20 31 10 * curl -s -X POST -H "Content-Type: application/json" -d '{"palette":"ghost"}' localhost:8080/config >/dev/null # halloween colour cycle
+0 21 31 10 * curl -s -X POST -H "Content-Type: application/json" -d '{"palette":"slime"}' localhost:8080/config >/dev/null # halloween colour cycle
+0 22 31 10 * curl -s -X POST -H "Content-Type: application/json" -d '{"palette":"amber"}' localhost:8080/config >/dev/null # halloween colour cycle
+0 23 31 10 * curl -s -X POST -H "Content-Type: application/json" -d '{"palette":"violet"}' localhost:8080/config >/dev/null # halloween colour cycle

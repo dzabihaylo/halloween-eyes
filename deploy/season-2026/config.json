@@ -1,0 +1,17 @@
+{
+  "shape": "ember",
+  "palette": "violet",
+  "energyDrift": false,
+  "crowdStyle": "squash",
+  "effectiveAt": 1793539776342,
+  "testGag": "suspicious",
+  "testGagAt": 1792279241234,
+  "scene": "auto",
+  "leafColors": "autumn",
+  "gustMinutes": 1,
+  "menorahNight": "auto",
+  "burnDown": true,
+  "snowAmount": "steady",
+  "countdown": true,
+  "radarEvery": 15
+}
